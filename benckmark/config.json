@@ -1,0 +1,23 @@
+{
+  "slurm_shell": {
+    "submit_cmd" : "sbatch -p partiton",
+    "file_path": "/path/to/slurm-shell-template",
+    "parameters": {
+      "transfersize, blocksize": ["512k, 2m", "1m, 8m", "2m, 32m", "4m, 128m"],
+      "segment": ["1", "4", "16"],
+      "direct_read" : ["true", "false"],
+      "direct_write" : ["true", "false"],
+      "striping_unit" : ["1048576", "2097152", "4194304", "8388608", "16777216"],
+      "striping_factor" : ["1", "2", "4", "8", "16"]
+    }
+  },
+  "output_file_1": {
+    "file_folder": "/path/to/folder/where/slurm-slurm_job_id.out/will/be",
+    "lines" :[
+        "Program is running on nodes: $nodelist",
+        "write         $write_bw",
+        "read      $read_bw"
+    ],
+    "tag_line" : "Summary of all tests:"
+  }
+}
