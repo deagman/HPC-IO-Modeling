@@ -1,0 +1,4 @@
+#!/bin/sh
+#SBATCH --partition=thcp3
+export ROMIO_HINTS=my_romio-hints_generated
+srun -p thcp3 -N 1 -n 16 /thfs3/home/xjtu_cx/hugo/ior-main-0/bin/ior -t transfersize -b blocksize -s segment -a MPIIO --mpiio.showHints
