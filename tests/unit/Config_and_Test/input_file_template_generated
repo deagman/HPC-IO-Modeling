@@ -1,0 +1,2 @@
+striping_unit = 2097152
+striping_factor = 2

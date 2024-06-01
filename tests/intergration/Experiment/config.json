@@ -1,0 +1,31 @@
+{
+    "name" : "myexperiment",
+    "result_folder" : "/thfs3/home/xjtu_cx/hugo/test/HPC-IO-Modeling/tests/intergration/Experiment",
+    "mode" : "sequential",
+    "batchsize" : 2,
+
+    "slurm_shell": {
+      "file_path": "./slurm_shell_template",
+      "parameters": {
+        "transfersize, blocksize": ["512k, 2m", "1m, 8m"],
+        "segment": ["1"]
+      }
+    },
+    "input_file_1": {
+      "file_path": "romio-hints",
+      "parameters": {
+        "__striping_factor": ["1","2"]
+      }
+    },
+    "output_file_1": {
+      "file_type": "out",
+      "lines" :[
+          "write         $write_bw",
+          "read      $read_bw"
+      ]
+    },
+    "output_file_2": {
+      "file_type" : "darshan",
+      "lines" : []
+    }
+  }
