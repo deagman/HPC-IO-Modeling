@@ -16,7 +16,7 @@ if __name__ == "__main__":
     # slurm_shell_config = Slurm_Shell_Config(file_path, parameters)
     # params_combinations = slurm_shell_config.combinate_parameters()
     # print(params_combinations)
-    # slurm_shell = slurm_shell_config.generate_shell_file(params_combinations[1])
+    # slurm_shell = slurm_shell_config.generate_shell_file(params_combinations[1], "../")
 
     # file_path = "input_file_template"
     # parameters = {
@@ -26,21 +26,21 @@ if __name__ == "__main__":
     # input_file_config = Input_File_Config(file_path, parameters)
     # params_combinations = input_file_config.combinate_parameters()
     # print(params_combinations)
-    # input_file = input_file_config.generate_input_file(params_combinations[3])
+    # input_file = input_file_config.generate_input_file(params_combinations[3], "../")
 
-    # file_path = "output_file_template"
-    # lines = [
-    #     "IO_bandwith = $io_bw",
-    #     "IO_runtime = $io_rt",
-    #     "IO_throughput = $io_tp_1 ??? $io_tp_2"
-    # ]
-    # output_file_config = Output_File_Config(file_path, lines)
-    # file_content = output_file_config.get_output_file_content()
-    # values = output_file_config.extract_file_content(file_content)
-    # print(values)
+    file_type = "out"
+    lines = [
+        "IO_bandwith = $io_bw",
+        "IO_runtime = $io_rt",
+        "IO_throughput = $io_tp_1 ? $io_tp_2"
+    ]
+    output_file_config = Output_File_Config(file_type, lines)
+    file_content = output_file_config.get_output_file_content("/thfs3/home/xjtu_cx/hugo/test/HPC-IO-Modeling/tests/unit/Config_and_Test/output_file_template")
+    values = output_file_config.extract_output_file_content("/thfs3/home/xjtu_cx/hugo/test/HPC-IO-Modeling/tests/unit/Config_and_Test/output_file_template")
+    print(values)
 
-    mode = 'batch'
-    shell_file = "slurm_shell"
-    test = Test(mode,'slurm_shell','./',1,"out")
-    test.execute_shell_file()
-    print(test.get_slurm_job_id())
+    # mode = 'batch'
+    # shell_file = "slurm_shell"
+    # test = Test(mode,'slurm_shell','./',1,"out")
+    # test.execute_shell_file()
+    # print(test.get_slurm_job_id())

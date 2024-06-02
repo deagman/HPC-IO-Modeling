@@ -1,3 +1,0 @@
-#!/bin/sh
-
-srun -p partition -N 2 -n 32 ior -t 1m -b 4m -s 1 -a MPIIO --mpiio.showHints

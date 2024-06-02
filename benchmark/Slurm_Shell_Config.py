@@ -35,7 +35,7 @@ class Slurm_Shell_Config :
         for param, value in params_combination.items():
             script_content = script_content.replace(param, value)
 
-        script_file_name = os.path.basename(self.file_path) + "_generated"
+        script_file_name = os.path.basename(self.file_path)
         script_file_path = os.path.join(folder_path, script_file_name)
 
         with open(script_file_path, 'w') as script_file:

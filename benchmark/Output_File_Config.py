@@ -1,3 +1,4 @@
+import re
 import subprocess
 
 
@@ -25,9 +26,8 @@ class Output_File_Config :
                 file_content = file.read()
             return file_content
         else :
-            # othermode
-            pass
-    
+            # other type
+            raise ValueError(f"Invalid file type: {self.file_type}")
     
     def extract_output_file_content(self, file_path):
         file_content = self.get_output_file_content(file_path)
@@ -36,17 +36,32 @@ class Output_File_Config :
             for word in line.split():
                 if word.startswith('$'):
                     values[word[1:]] = None
-        # 取出所有key对应的value
+    
+    def extract_output_file_content(self, file_path):
+        file_content = self.get_output_file_content(file_path)
+        values = {}
+        for line in self.lines:
+            for word in line.split():
+                if word.startswith('$'):
+                    values[word[1:]] = None
+
+        matched_line_index = 0
         for file_line in file_content.split('\n'):
-            for line in self.lines:
-                line_prefix = line.split('$')[0]
-                if file_line.startswith(line_prefix):
-                    # Split file_line and line by whitespace
-                    file_values = file_line.split()[len(line_prefix.split()):]
-                    line_values = line.split()[len(line_prefix.split()):]
-                    # Pair up placeholder keys with their corresponding values
-                    for key, value in zip(line_values, file_values):
-                        if key.startswith('$'):  # Check if the key is a placeholder key
-                            values[key[1:]] = value  # Remove the '$' and add to values dictionary
-                    break  # Move to the next line in file_content
+            for line_index, line in enumerate(self.lines[matched_line_index:], start=matched_line_index):
+                file_words = file_line.split()
+                line_words = line.split()
+                if len(file_words) < len(line_words):
+                    continue
+                match = True
+                for file_word, line_word in zip(file_words, line_words):
+                    if line_word != '?' and not line_word.startswith('$'):
+                        if file_word != line_word:
+                            match = False
+                            break
+                if match:
+                    for word in line_words:
+                        if word.startswith('$'):
+                            values[word[1:]] = file_words[line_words.index(word)]
+                    matched_line_index = line_index + 1
+                    break
         return values
