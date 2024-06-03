@@ -126,7 +126,6 @@ class Experiment:
                 # 添加slurm_shell的参数
                 params_combination_list.append(params_combination_0)
                 slurm_shell_path = self.slurm_shell_config.generate_shell_file(params_combination_0, folder_path)
-                print("slurm_shell_path",slurm_shell_path)
                 # 为所有的input_file_configs生成文件
                 for input_file_config, params_combinations_x, index in zip(self.input_file_configs, params_combinations_list, combination[1:]):
                     # 第x个input_file的第index个参数组合
@@ -165,7 +164,11 @@ class Experiment:
     
     # data为一个字典列表，将其写入csv文件
     def write_to_csv(self, data):
-        pass
+        csv_file_path = os.path.join(self.result_folder, self.name, f'{self.name}.csv')
+        with open(csv_file_path, 'w', newline='') as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=data[0].keys())
+            writer.writeheader()
+            writer.writerows(data)
     
     
     # def extract_output_file_content(self, file_path, file_type, lines):

@@ -36,14 +36,6 @@ class Output_File_Config :
             for word in line.split():
                 if word.startswith('$'):
                     values[word[1:]] = None
-    
-    def extract_output_file_content(self, file_path):
-        file_content = self.get_output_file_content(file_path)
-        values = {}
-        for line in self.lines:
-            for word in line.split():
-                if word.startswith('$'):
-                    values[word[1:]] = None
 
         matched_line_index = 0
         for file_line in file_content.split('\n'):

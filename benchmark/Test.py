@@ -25,9 +25,7 @@ class Test :
         elif self.mode == 'batch':
             if self.test_type == "out":
                 sbatch_options = ["--output", f"test_{self.iteration}.out"]
-                # 因为要转移到result_folders，所以不必加上{self.result_folder}
-                # 因为shell_file_path是和resul_folder相关，所以result_floder必须为绝对路径，不然shell_file_path只能是名称，而非路径
-                # 这一点可以在intergration/Experiment中的congfig.json中验证
+                # 因为要转移到result_folders下执行，所以不必加上{self.result_folder}
                 command = switch[self.mode] + sbatch_options + [self.shell_file_path]
                 # run in result_folders to avoid the same temp-files generated in program execution causing chaos
                 submited_job = subprocess.run(command, capture_output=True, text=True, cwd=self.result_folder)
@@ -45,7 +43,6 @@ class Test :
                     f"DARSHAN_LOGFILE=test_{self.iteration}.darshan"
                     ]
                 command = switch[self.mode] + export_options + sbatch_options + [self.shell_file_path]
-                print(command)
                 submited_job = subprocess.run(command, capture_output=True, text=True, cwd=self.result_folder)
                 if 'error' in submited_job.stderr:
                     self.slurm_job_id = '-1'
@@ -53,8 +50,7 @@ class Test :
                 else :
                     self.slurm_job_id = submited_job.stdout.split()[-1]
             else :
-                # 其他test_type
-                pass
+                raise ValueError("Invalid test_type, must be 'out' or 'out + darshan'")
         elif self.mode == 'sequential':
             if self.test_type == "out":
                 command = ' '.join(switch[self.mode] + [self.shell_file_path]) + f' > test_{self.iteration}.out'
@@ -66,8 +62,6 @@ class Test :
                 command = ' '.join(env_var + switch[self.mode] + [self.shell_file_path]) + f' > test_{self.iteration}.out'
                 submited_job = subprocess.run(command, shell=True, text=True, cwd=self.result_folder)
             else :
-                # 其他test_type
-                pass
+                raise ValueError("Invalid test_type, must be 'out' or 'out + darshan'")
         else :
-            # 其他模式
-            pass
+            raise ValueError("Invalid mode")

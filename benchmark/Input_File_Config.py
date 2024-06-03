@@ -5,6 +5,10 @@ class Input_File_Config :
     def __init__(self, file_path, parameters):
         self.file_path = file_path
         self.parameters = parameters
+        if not os.path.exists(self.file_path):
+            raise ValueError(f"Invalid file path: {self.file_path}")
+        with open(self.file_path, 'r') as template_file:
+            self.template_content = template_file.read()
     
     def get_keys(self):
         return self.file_path, self.parameters
@@ -23,12 +27,7 @@ class Input_File_Config :
         return params_combinations
 
     def generate_input_file(self, params_combination, folder_path):
-        if not os.path.exists(self.file_path):
-            raise ValueError(f"Invalid file path: {self.file_path}")
-
-        with open(self.file_path, 'r') as template_file:
-            template_content = template_file.read()
-        script_content = template_content
+        script_content = self.template_content
 
         for param, value in params_combination.items():
             script_content = script_content.replace(param, value)
