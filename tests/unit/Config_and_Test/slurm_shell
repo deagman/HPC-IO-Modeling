@@ -1,3 +1,0 @@
-#!/bin/sh
-#SBATCH --partition=thcp3
-srun -p thcp3 -N 1 -n 16 /thfs3/home/xjtu_cx/hugo/ior-main-0/bin/ior -t 1m -b 8m -s 1 -C -v -v -v -a MPIIO --mpiio.showHints

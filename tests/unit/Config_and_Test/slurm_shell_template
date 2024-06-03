@@ -1,3 +1,0 @@
-#!/bin/sh
-
-srun -p partition -N nodes -n ntasks ior -t transfersize -b blocksize -s segment -a MPIIO --mpiio.showHints
