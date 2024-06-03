@@ -1,0 +1,27 @@
+{
+    "name" : "myexperiment",
+    "result_folder" : "/an/absolute/path",
+    "mode" : "batch",
+    "batchsize" : 2,
+
+    "slurm_shell": {
+      "file_path": "lmp.sh"
+    },
+    "input_file_1": {
+      "file_path": "romio_hints",
+      "parameters": {
+        "__striping_factor": ["1","2"],
+        "__striping_unit": ["1048576","2097152"]
+      }
+    },
+    "input_file_2": {
+      "file_path": "in.box"
+    },
+    "output_file_1": {
+      "file_type": "out"
+    },
+    "output_file_2": {
+      "file_type" : "darshan",
+      "lines" : []
+    }
+  }

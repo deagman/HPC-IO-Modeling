@@ -1,0 +1,4 @@
+reslut:
+IO_bandwith = 100MB/s
+IO_runtime = 5.0s
+IO_throughput = 100 200 300
