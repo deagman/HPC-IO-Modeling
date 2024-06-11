@@ -19,7 +19,7 @@ class Experiment:
 
     # 生成一些文件夹
     # 检查result_folder是否存在，如果不存在则创建
-    # 在result_folder下创建一个以name命名的文件夹，如果result_folder中已有name文件夹，则创建name_1文件夹
+    # 在result_folder下创建一个以name命名的文件夹，如果result_folder中已有name文件夹，则重新输入name
     # 在name文件夹下创建test文件夹，其个数为batchsize，名字分别是tests_0，tests_1，...
     def generate_folders(self):
         # 检查result_folder是否存在，如果不存在则创建
@@ -29,13 +29,23 @@ class Experiment:
         # 在result_folder下创建一个以name命名的文件夹，如果result_folder中已有name文件夹，则创建name_1文件夹，如果再有，则创建name_2文件夹
         name_folder = os.path.join(self.result_folder, self.name)
         if os.path.exists(name_folder):
-            i = 1
-            while os.path.exists(f"{name_folder}_{i}"):
-                i += 1
-            name_folder = f"{name_folder}_{i}"
-            # 更新name
-            self.name = f"{self.name}_{i}"
-        os.makedirs(name_folder)
+            print(f"The folder {name_folder} already exists.")
+            while True:
+                user_input = input(("Enter a new name or press enter to use the existing folder. "
+                    "If you want to use the existing folder, you should specify "
+                    "the start and end of the test in function run and extract_data to continue the previous experiment: ")).strip()
+                if user_input:
+                    name_folder = os.path.join(self.result_folder, user_input)
+                    if os.path.exists(name_folder):
+                        print(f"The folder {name_folder} already exists.")
+                    else:
+                        # 更新name
+                        self.name = user_input
+                        break
+                else:
+                    print(f"Tests will be performed in the existing folder: {name_folder}")
+                    break
+        os.makedirs(name_folder, exist_ok=True)
 
         # 在name文件夹下创建test文件夹，其个数为batchsize，名字分别是tests_0，tests_1，...
         for i in range(self.batchsize):
@@ -76,36 +86,36 @@ class Experiment:
         # need to salloc in terminal
         pass
 
-    def run(self, all_combinations, params_combinations_0, params_combinations_list):
+    def run(self, all_combinations, params_combinations_0, params_combinations_list, iter_start = 0, iter_end = None):
+        if iter_end is None:
+            iter_end = len(all_combinations)
         if self.mode == 'batch':
             # tests_i文件夹存放当前批次第i个test
-            for batch_start in range(0, len(all_combinations), self.batchsize):
-                print(batch_start)
+            for batch_start in range(iter_start, iter_end, self.batchsize):
+                print("batch_start:", batch_start)
                 slurm_job_ids = [None] * self.batchsize
                 for i in range(self.batchsize) :
                     iter = batch_start + i
-                    folder_path = os.path.join(self.result_folder, self.name, f'tests_{i}')
-                    if batch_start + i < len(all_combinations):
-                        combination = all_combinations[batch_start + i]
-                        params_combination_list = []
-                        params_combination_0 = params_combinations_0[combination[0]]
-                        # 添加slurm_shell的参数
-                        params_combination_list.append(params_combination_0)
-                        slurm_shell_path = self.slurm_shell_config.generate_shell_file(params_combination_0, folder_path)
-                        print("slurm_shell_path", slurm_shell_path)
-                        # 为所有的input_file_configs生成文件
-                        for input_file_config, params_combinations_x, index in zip(self.input_file_configs, params_combinations_list, combination[1:]):
-                            # 第x个input_file的第index个参数组合
-                            params_combination_x = params_combinations_x[index]
-                            params_combination_list.append(params_combination_x)
-                            input_file_config.generate_input_file(params_combination_x, folder_path)
-                        # run test
-                        print(self.test_type)
-                        test = Test(self.mode, slurm_shell_path, folder_path, iter, self.test_type)
-                        print("开始执行")
-                        test.execute_shell_file()
-                        slurm_job_ids[i] = test.get_slurm_job_id()
-                        print("id", slurm_job_ids[i])
+                    if iter >= iter_end:
+                        break
+                    tests_folder = os.path.join(self.result_folder, self.name, f'tests_{i % self.batchsize}')
+                    combination = all_combinations[batch_start + i]
+                    params_combination_list = []
+                    params_combination_0 = params_combinations_0[combination[0]]
+                    # 添加slurm_shell的参数
+                    params_combination_list.append(params_combination_0)
+                    slurm_shell_path = self.slurm_shell_config.generate_shell_file(params_combination_0, tests_folder)
+                    # 为所有的input_file_configs生成文件
+                    for input_file_config, params_combinations_x, index in zip(self.input_file_configs, params_combinations_list, combination[1:]):
+                        # 第x个input_file的第index个参数组合
+                        params_combination_x = params_combinations_x[index]
+                        params_combination_list.append(params_combination_x)
+                        input_file_config.generate_input_file(params_combination_x, tests_folder)
+                    # run test
+                    test = Test(self.mode, slurm_shell_path, tests_folder, iter, self.test_type)
+                    test.execute_shell_file()
+                    slurm_job_ids[i] = test.get_slurm_job_id()
+                    print("iter:", iter,"    id:", slurm_job_ids[i])
                 # 检查当前批次任务是否全部完成
                 while True:
                     squeue = subprocess.run(['squeue'], stdout=subprocess.PIPE)
@@ -117,35 +127,38 @@ class Experiment:
                     else:
                         break   
         elif self.mode == 'sequential':
-            folder_path = os.path.join(self.result_folder, self.name, 'tests_0')
-            iter = 0
+            iter = iter_start
+            tests_folder = os.path.join(self.result_folder, self.name, f'tests_0')
             # 开始执行
-            for combination in all_combinations:
+            for combination in all_combinations[iter_start:iter_end]:
                 params_combination_0 = params_combinations_0[combination[0]]
                 params_combination_list = []
                 # 添加slurm_shell的参数
                 params_combination_list.append(params_combination_0)
-                slurm_shell_path = self.slurm_shell_config.generate_shell_file(params_combination_0, folder_path)
+                slurm_shell_path = self.slurm_shell_config.generate_shell_file(params_combination_0, tests_folder)
                 # 为所有的input_file_configs生成文件
                 for input_file_config, params_combinations_x, index in zip(self.input_file_configs, params_combinations_list, combination[1:]):
                     # 第x个input_file的第index个参数组合
                     params_combination_x = params_combinations_x[index]
                     params_combination_list.append(params_combination_x)
-                    input_file_config.generate_input_file(params_combination_x, folder_path)
+                    input_file_config.generate_input_file(params_combination_x, tests_folder)
                 # run test
-                test = Test(self.mode, slurm_shell_path, folder_path, iter, self.test_type)
-                print("开始执行")
+                test = Test(self.mode, slurm_shell_path, tests_folder, iter, self.test_type)
+                print("iter:", iter)
                 test.execute_shell_file()
                 iter += 1
         else :
             raise ValueError("Invalid mode")
+    
     # 读取self.result_folder/self.name中，tests或者tests_0,tests_1, ...文件夹中名为test_iter.out的文件中的结果
     # 其中iter为0,1,2,..
     # iter为0,1,2,...表示第几次实验，和all_combinations中的combinations对应
-    def extract_data(self, all_combinations, params_combinations_0, params_combinations_list):
+    def extract_data(self, all_combinations, params_combinations_0, params_combinations_list, iter_start=0, iter_end=None):
         params_combinations_list.insert(0,params_combinations_0)
         data = []
-        for i, combination in enumerate(all_combinations):
+        if iter_end is None:
+            iter_end = len(all_combinations)
+        for i, combination in enumerate(all_combinations[iter_start:iter_end], start=iter_start):
             params_combination_list = []
             for params_combinations_x, index in zip(params_combinations_list, combination):
                 params_combination_list.append(params_combinations_x[index])

@@ -39,6 +39,8 @@ class Output_File_Config :
 
         matched_line_index = 0
         for file_line in file_content.split('\n'):
+            if matched_line_index >= len(self.lines):
+                break
             for line_index, line in enumerate(self.lines[matched_line_index:], start=matched_line_index):
                 file_words = file_line.split()
                 line_words = line.split()

@@ -1,2 +1,6 @@
+ind_rd_buffer_size __ind_rd_buffer_size
+ind_wr_buffer_size __ind_wr_buffer_size
+romio_ds_read __romio_ds_read
+romio_ds_write __romio_ds_write
 striping_factor __striping_factor
 striping_unit __striping_unit

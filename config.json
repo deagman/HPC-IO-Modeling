@@ -1,35 +1,7 @@
 {
-    "name" : "ior-indep",
-    "result_folder" : "/thfs3/home/xjtu_cx/hugo/test/HPC-IO-Modeling/examples/ior",
-    "mode" : "batch",
-    "batchsize" : 10,
-
-    "slurm_shell": {
-      "file_path": "ior.sh",
-      "parameters": {
-      }
-    },
-    "input_file_1": {
-      "file_path": "romio_hints",
-      "parameters": {
-        "__ind_rd_buffer_size":["2097152","4194304","8388608"],
-        "__ind_wr_buffer_size":["524288","4194304","8388608"],
-        "__romio_ds_read":["disable","automatic","enable"],
-        "__romio_ds_write":["disable","automatic","enable"],
-        "__striping_factor": ["1","2","4","8","16","32","64","96","120"],
-        "__striping_unit": ["1048576","2097152","4194304","16777216","33554432","67108864","134217728"]
-      }
-    },
-    "output_file_1": {
-      "file_type": "out",
-      "lines" :[
-          "write         $write_bw",
-          "read      $read_bw"
-      ]
-    },
-    "output_file_2": {
-      "file_type": "darshan",
-      "lines" : [
+    "darshan_lib": "/thfs3/home/xjtu_cx/hugo/darshan-main/lib/libdarshan.so",
+    "darshan_parser": "/thfs3/home/xjtu_cx/hugo/darshan-main/bin/darshan-parser",
+    "darshan_mpiio_lines": [
         "MPI-IO -1 ? MPIIO_INDEP_OPENS $mpiio_indep_opens",
         "MPI-IO -1 ? MPIIO_COLL_OPENS $mpiio_coll_opens",
         "MPI-IO -1 ? MPIIO_INDEP_READS $mpiio_indep_reads",
@@ -99,5 +71,4 @@
         "MPI-IO -1 ? MPIIO_F_VARIANCE_RANK_TIME $mpiio_f_variance_rank_time",
         "MPI-IO -1 ? MPIIO_F_VARIANCE_RANK_BYTES $mpiio_f_variance_rank_bytes"
       ]
-     }
-  } 
+}

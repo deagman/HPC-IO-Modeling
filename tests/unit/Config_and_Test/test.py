@@ -39,6 +39,16 @@ if __name__ == "__main__":
     values = output_file_config.extract_output_file_content("./templates/output_file_template")
     print(values)
 
+    file_type = "darshan"
+    lines = [
+        "MPI-IO -1 ? MPIIO_INDEP_OPENS $mpiio_indep_opens",
+        "MPI-IO -1 ? MPIIO_COLL_OPENS $mpiio_coll_opens",
+        ]
+    output_file_config = Output_File_Config(file_type, lines)
+    file_content = output_file_config.get_output_file_content("./templates/test_0.darshant")
+    values = output_file_config.extract_output_file_content1("/thfs3/home/xjtu_cx/hugo/test/HPC-IO-Modeling/tests/unit/Config_and_Test/templates/test_0.darshan.txt")
+    print(values)
+
     mode = 'batch'
     shell_file = "./templates/slurm_shell"
     test = Test(mode,shell_file,'./',1,"out")
