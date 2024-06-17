@@ -1,6 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
 import os
 import subprocess
+import threading
 import time
 
 from benchmark.Config_File import Config_File
@@ -11,11 +13,12 @@ class Experiment:
         self.config_file = Config_File(config_file_path)
         self.name = self.config_file.get_name()
         self.mode = self.config_file.get_mode()
+        self.test_type = self.config_file.get_test_type()
         self.result_folder = self.config_file.get_result_folder()
         self.batchsize = self.config_file.get_batchsize()
         self.slurm_shell_config = self.config_file.get_slurm_shell_config()
         self.input_file_configs = self.config_file.get_input_file_configs()
-        self.test_type, self.output_file_configs = self.config_file.get_output_file_configs()
+        self.output_file_configs = self.config_file.get_output_file_configs()
 
     # 生成一些文件夹
     # 检查result_folder是否存在，如果不存在则创建
@@ -26,14 +29,11 @@ class Experiment:
         if not os.path.exists(self.result_folder):
             os.makedirs(self.result_folder)
 
-        # 在result_folder下创建一个以name命名的文件夹，如果result_folder中已有name文件夹，则创建name_1文件夹，如果再有，则创建name_2文件夹
         name_folder = os.path.join(self.result_folder, self.name)
         if os.path.exists(name_folder):
             print(f"The folder {name_folder} already exists.")
             while True:
-                user_input = input(("Enter a new name or press enter to use the existing folder. "
-                    "If you want to use the existing folder, you should specify "
-                    "the start and end of the test in function run and extract_data to continue the previous experiment: ")).strip()
+                user_input = input("Enter a new name or press enter to use the existing folder: ").strip()
                 if user_input:
                     name_folder = os.path.join(self.result_folder, user_input)
                     if os.path.exists(name_folder):
@@ -52,7 +52,6 @@ class Experiment:
             test_folder = os.path.join(name_folder, f"tests_{i}")
             os.makedirs(test_folder)
 
-    
     def get_all_combinations(self):
         # params_combinations_0是一个slurm_shell的字典列表。
         # parmas_combinations_0 = [{'N':1}, {'N':2}，{'N':3}]
@@ -83,39 +82,49 @@ class Experiment:
 
     def allocate_nodes(self):
         # not working to use salloc in pycode, don't know why
-        # need to salloc in terminal
+        # you need to "salloc" in terminal
         pass
+    
+    def execute_test(self, test):
+        test.execute_shell_file()
+        slurm_job_id = test.get_slurm_job_id()
+        print("iter:", test.iteration, "    id:", slurm_job_id)
+        return slurm_job_id
 
     def run(self, all_combinations, params_combinations_0, params_combinations_list, iter_start = 0, iter_end = None):
         if iter_end is None:
             iter_end = len(all_combinations)
-        if self.mode == 'batch':
+        if self.mode == 'sbatch' or self.mode == 'salloc':
             # tests_i文件夹存放当前批次第i个test
             for batch_start in range(iter_start, iter_end, self.batchsize):
                 print("batch_start:", batch_start)
                 slurm_job_ids = [None] * self.batchsize
-                for i in range(self.batchsize) :
-                    iter = batch_start + i
-                    if iter >= iter_end:
-                        break
-                    tests_folder = os.path.join(self.result_folder, self.name, f'tests_{i % self.batchsize}')
-                    combination = all_combinations[batch_start + i]
-                    params_combination_list = []
-                    params_combination_0 = params_combinations_0[combination[0]]
-                    # 添加slurm_shell的参数
-                    params_combination_list.append(params_combination_0)
-                    slurm_shell_path = self.slurm_shell_config.generate_shell_file(params_combination_0, tests_folder)
-                    # 为所有的input_file_configs生成文件
-                    for input_file_config, params_combinations_x, index in zip(self.input_file_configs, params_combinations_list, combination[1:]):
-                        # 第x个input_file的第index个参数组合
-                        params_combination_x = params_combinations_x[index]
-                        params_combination_list.append(params_combination_x)
-                        input_file_config.generate_input_file(params_combination_x, tests_folder)
-                    # run test
-                    test = Test(self.mode, slurm_shell_path, tests_folder, iter, self.test_type)
-                    test.execute_shell_file()
-                    slurm_job_ids[i] = test.get_slurm_job_id()
-                    print("iter:", iter,"    id:", slurm_job_ids[i])
+                with ThreadPoolExecutor(max_workers=self.batchsize) as executor:
+                    futures = []
+                    for i in range(self.batchsize) :
+                        iter = batch_start + i
+                        if iter >= iter_end:
+                            break
+                        tests_folder = os.path.join(self.result_folder, self.name, f'tests_{i % self.batchsize}')
+                        combination = all_combinations[batch_start + i]
+                        params_combination_list = []
+                        params_combination_0 = params_combinations_0[combination[0]]
+                        # 添加slurm_shell的参数
+                        params_combination_list.append(params_combination_0)
+                        slurm_shell_path = self.slurm_shell_config.generate_shell_file(params_combination_0, tests_folder)
+                        # 为所有的input_file_configs生成文件
+                        for input_file_config, params_combinations_x, index in zip(self.input_file_configs, params_combinations_list, combination[1:]):
+                            # 第x个input_file的第index个参数组合
+                            params_combination_x = params_combinations_x[index]
+                            params_combination_list.append(params_combination_x)
+                            input_file_config.generate_input_file(params_combination_x, tests_folder)
+                        # run test
+                        test = Test(self.mode, slurm_shell_path, tests_folder, iter, self.test_type)
+                        future = executor.submit(self.execute_test, test)
+                        futures.append(future)
+                    for i, future in enumerate(as_completed(futures)):
+                        slurm_job_id = future.result() 
+                        slurm_job_ids[i] = slurm_job_id
                 # 检查当前批次任务是否全部完成
                 while True:
                     squeue = subprocess.run(['squeue'], stdout=subprocess.PIPE)
@@ -125,28 +134,7 @@ class Experiment:
                     if any(job_id in slurm_job_ids for job_id in job_ids):
                         time.sleep(5)
                     else:
-                        break   
-        elif self.mode == 'sequential':
-            iter = iter_start
-            tests_folder = os.path.join(self.result_folder, self.name, f'tests_0')
-            # 开始执行
-            for combination in all_combinations[iter_start:iter_end]:
-                params_combination_0 = params_combinations_0[combination[0]]
-                params_combination_list = []
-                # 添加slurm_shell的参数
-                params_combination_list.append(params_combination_0)
-                slurm_shell_path = self.slurm_shell_config.generate_shell_file(params_combination_0, tests_folder)
-                # 为所有的input_file_configs生成文件
-                for input_file_config, params_combinations_x, index in zip(self.input_file_configs, params_combinations_list, combination[1:]):
-                    # 第x个input_file的第index个参数组合
-                    params_combination_x = params_combinations_x[index]
-                    params_combination_list.append(params_combination_x)
-                    input_file_config.generate_input_file(params_combination_x, tests_folder)
-                # run test
-                test = Test(self.mode, slurm_shell_path, tests_folder, iter, self.test_type)
-                print("iter:", iter)
-                test.execute_shell_file()
-                iter += 1
+                        break
         else :
             raise ValueError("Invalid mode")
     
@@ -165,7 +153,7 @@ class Experiment:
             tests_folder = os.path.join(self.result_folder, self.name, f'tests_{i % self.batchsize}')
             values_list = []
             for output_file_config in self.output_file_configs:
-                file_type, _ = output_file_config.get_keys()
+                file_type, _, _ = output_file_config.get_keys()
                 file_path = os.path.join(tests_folder, f'test_{i}.{file_type}')
                 values = output_file_config.extract_output_file_content(file_path)
                 values_list.append(values)
@@ -176,50 +164,14 @@ class Experiment:
         return data
     
     # data为一个字典列表，将其写入csv文件
-    def write_to_csv(self, data):
+    def write_to_csv(self, data, name=None):
+        if name is None:
+            name = self.name
         csv_file_path = os.path.join(self.result_folder, self.name, f'{self.name}.csv')
         with open(csv_file_path, 'w', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=data[0].keys())
             writer.writeheader()
             writer.writerows(data)
-    
-    
-    # def extract_output_file_content(self, file_path, file_type, lines):
-    #     # 读取file_path中的内容
-    #     file_content = None
-    #     if file_type == 'out' :
-    #         with open(file_path, 'r') as file:
-    #             file_content = file.read()
-    #     elif file_type == 'darshan' :
-    #         parser_path = '/thfs3/home/xjtu_cx/hugo/darshan-main/bin/darshan-parser'
-    #         parsed_file_path = file_path + '.txt'
-    #         command = f'{parser_path} {file_path} > {parsed_file_path}'
-    #         subprocess.run(command, shell=True)
-    #         with open(parsed_file_path, 'r') as file:
-    #             file_content = file.read()
-    #     else:
-    #         # 其他类型
-    #         pass
-    #     # 取出lines中所有的key
-    #     values = {}
-    #     for line in lines:
-    #         for word in line.split():
-    #             if word.startswith('$'):
-    #                 values[word[1:]] = None
-    #     # 取出所有key对应的value
-    #     for file_line in file_content.split('\n'):
-    #         for line in lines:
-    #             line_prefix = line.split('$')[0]
-    #             if file_line.startswith(line_prefix):
-    #                 # Split file_line and line by whitespace
-    #                 file_values = file_line.split()[len(line_prefix.split()):]
-    #                 line_values = line.split()[len(line_prefix.split()):]
-    #                 # Pair up placeholder keys with their corresponding values
-    #                 for key, value in zip(line_values, file_values):
-    #                     if key.startswith('$'):  # Check if the key is a placeholder key
-    #                         values[key[1:]] = value  # Remove the '$' and add to values dictionary
-    #                 break  # Move to the next line in file_content
-    #     return values
 
                 
 

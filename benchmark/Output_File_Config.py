@@ -3,12 +3,13 @@ import subprocess
 
 
 class Output_File_Config :
-    def __init__(self, file_type, lines):
+    def __init__(self, file_type, file_improc, lines):
         self.file_type = file_type
+        self.file_improc = file_improc
         self.lines = lines
     
     def get_keys(self) :
-        return self.file_type, self.lines
+        return self.file_type, self.file_improc, self.lines
     
     def get_output_file_content(self, file_path):
         if self.file_type == "out":
@@ -17,13 +18,25 @@ class Output_File_Config :
                 file_content = file.read()
             return file_content
         elif self.file_type == "darshan":
-            parser_path = '/thfs3/home/xjtu_cx/hugo/darshan-main/bin/darshan-parser'
-            parsed_file_path = file_path + '.txt'
-            command = f'{parser_path} {file_path} > {parsed_file_path}'
-            subprocess.run(command, shell=True)
             file_content = None
+            command = None
+            if self.file_improc == "darshan-parser":
+                parser_path = '/thfs3/home/xjtu_cx/hugo/darshan-main/bin/darshan-parser'
+                parsed_file_path = file_path + '.txt'
+                command = f'{parser_path} {file_path} > {parsed_file_path}'
+            elif self.file_improc == "darshan-parser --total":
+                parser_path = '/thfs3/home/xjtu_cx/hugo/darshan-main/bin/darshan-parser'
+                parsed_file_path = file_path + '.total'
+                command = f'{parser_path} --total {file_path} > {parsed_file_path}'
+            elif self.file_improc == "darshan-parser --perf":
+                parser_path = '/thfs3/home/xjtu_cx/hugo/darshan-main/bin/darshan-parser'
+                parsed_file_path = file_path + '.perf'
+                command = f'{parser_path} --perf {file_path} > {parsed_file_path}'
+            else :
+                raise ValueError(f"Invalid file intermediate processing: {self.file_improc}")
+            subprocess.run(command, shell=True)
             with open(parsed_file_path, 'r') as file:
-                file_content = file.read()
+                 file_content = file.read()
             return file_content
         else :
             # other type

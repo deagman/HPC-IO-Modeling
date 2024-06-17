@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 from benchmark.Slurm_Shell_Config import Slurm_Shell_Config
 from benchmark.Input_File_Config import Input_File_Config
@@ -16,9 +17,15 @@ class Config_File :
 
     def get_mode(self):
         mode = self.config["mode"]
-        if mode not in ["sequential", "batch"]:
-            raise ValueError("Invalid mode, must be batch or sequential")
+        if mode not in ["salloc", "sbatch"]:
+            raise ValueError("Invalid mode, must be sbatch or salloc")
         return mode
+    
+    def get_test_type(self):
+        test_type = self.config["test_type"]
+        if test_type not in ["out", "out+darshan"]:
+            raise ValueError("Invalid test type, must be 'out' or 'out+darshan'")
+        return test_type
     
     def get_result_folder(self):
         result_folder = self.config["result_folder"]
@@ -28,9 +35,7 @@ class Config_File :
         return result_folder
     
     def get_batchsize(self):
-        if self.config["mode"] == "sequential" :
-            return 1
-        return self.config.get("batchsize", 1)
+        return self.config["batchsize"]
     
     def get_slurm_shell_config(self):
         slurm_shell_config = Slurm_Shell_Config(self.config["slurm_shell"]["file_path"], self.config["slurm_shell"]["parameters"])
@@ -46,19 +51,8 @@ class Config_File :
     
     def get_output_file_configs(self):
         output_file_configs = []
-        file_types = []
-        test_type = None
         for key in self.config:
             if key.startswith("output_file"):
-                file_type = self.config[key]["file_type"]
-                output_file_config = Output_File_Config(file_type, self.config[key]["lines"])
+                output_file_config = Output_File_Config(self.config[key]["file_type"], self.config[key]["file_improc"], self.config[key]["lines"])
                 output_file_configs.append(output_file_config)
-                file_types.append(file_type)
-        # 检查file_types, 如果只有out, 则返回test_type = "out", 如果有out+darshan, 则返回test_type = "out+darshan"
-        if len(file_types) == 1 and file_types[0] == "out":
-            test_type = "out"
-        elif len(file_types) == 2 and file_types[0] == "out" and file_types[1] == "darshan":
-            test_type = "out+darshan"
-        else:
-            raise ValueError("Invalid test type, must be 'out' or 'out + darshan' ")
-        return test_type, output_file_configs
+        return output_file_configs

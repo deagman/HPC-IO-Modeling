@@ -2,6 +2,7 @@
     "name" : "ior-indep",
     "result_folder" : "/thfs3/home/xjtu_cx/hugo/test/HPC-IO-Modeling/examples/ior",
     "mode" : "batch",
+    "test_type": "out+darshan",
     "batchsize" : 10,
 
     "slurm_shell": {
@@ -29,6 +30,7 @@
     },
     "output_file_2": {
       "file_type": "darshan",
+      "file_improc": "darshan-parser",
       "lines" : [
         "MPI-IO -1 ? MPIIO_INDEP_OPENS $mpiio_indep_opens",
         "MPI-IO -1 ? MPIIO_COLL_OPENS $mpiio_coll_opens",
