@@ -14,8 +14,12 @@ class Output_File_Config :
     def get_output_file_content(self, file_path):
         if self.file_type == "out":
             file_content = None
-            with open(file_path, 'r') as file:
-                file_content = file.read()
+            try:
+                with open(file_path, 'r') as file:
+                    file_content = file.read()
+            except FileNotFoundError:
+                error_message = f"Error: The file '{file_path}' was not found."
+                print(error_message)
             return file_content
         elif self.file_type == "darshan":
             file_content = None
@@ -45,6 +49,8 @@ class Output_File_Config :
     def extract_output_file_content(self, file_path):
         file_content = self.get_output_file_content(file_path)
         values = {}
+        if file_content is None:
+            return values
         for line in self.lines:
             for word in line.split():
                 if word.startswith('$'):

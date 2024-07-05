@@ -27,7 +27,7 @@ class Test :
                 sbatch_options = ["--output", f"test_{self.iteration}.out"]
                 # 因为要转移到test_folder下执行，所以不必加上{self.test_folder}
                 command = switch[self.mode] + sbatch_options + [self.shell_file_path]
-                # run in test_folders to avoid the same temp-files generated in program execution causing chaos
+                # run in test_folders to avoid the same temp-files generated in program execution which will cause chaos
                 submited_job = subprocess.run(command, capture_output=True, text=True, cwd=self.test_folder)
                 if 'error' in submited_job.stderr:
                     self.slurm_job_id = '-1'

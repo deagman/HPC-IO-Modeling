@@ -83,6 +83,7 @@ class Experiment:
     def allocate_nodes(self):
         # not working to use salloc in pycode, don't know why
         # you need to "salloc" in terminal
+        # 如果一次试验结束或者中止，需要再次申请salloc
         pass
     
     def execute_test(self, test):
@@ -125,7 +126,7 @@ class Experiment:
                     for i, future in enumerate(as_completed(futures)):
                         slurm_job_id = future.result() 
                         slurm_job_ids[i] = slurm_job_id
-                # 检查当前批次任务是否全部完成
+                # 检查当前批次任务是否全部完成，如果有任务超时，则重新sbatch任务。目前仅支持sbatch，对于salloc暂时不支持
                 while True:
                     squeue = subprocess.run(['squeue'], stdout=subprocess.PIPE)
                     queue = squeue.stdout.decode()
@@ -150,7 +151,7 @@ class Experiment:
             params_combination_list = []
             for params_combinations_x, index in zip(params_combinations_list, combination):
                 params_combination_list.append(params_combinations_x[index])
-            tests_folder = os.path.join(self.result_folder, self.name, f'tests_{i % self.batchsize}')
+            tests_folder = os.path.join(self.result_folder, self.name, f'tests_{(i+1) % self.batchsize}')
             values_list = []
             for output_file_config in self.output_file_configs:
                 file_type, _, _ = output_file_config.get_keys()
@@ -167,7 +168,7 @@ class Experiment:
     def write_to_csv(self, data, name=None):
         if name is None:
             name = self.name
-        csv_file_path = os.path.join(self.result_folder, self.name, f'{self.name}.csv')
+        csv_file_path = os.path.join(self.result_folder, self.name, f'{name}.csv')
         with open(csv_file_path, 'w', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=data[0].keys())
             writer.writeheader()
