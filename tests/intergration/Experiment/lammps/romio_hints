@@ -1,0 +1,5 @@
+romio_cb_write __romio_cb_write
+cb_nodes __cb_nodes
+cb_buffer_size __cb_buffer_size
+striping_factor __striping_factor
+striping_unit __striping_unit

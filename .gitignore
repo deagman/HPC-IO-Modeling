@@ -1,6 +1,3 @@
 benchmark/__pycache__/
-tests/intergration/Experiment/*
 examples/lammps/*
-!tests/intergration/Experiment/config.json
-!tests/intergration/Experiment/romio_hints
-!tests/intergration/Experiment/slurm_shell_template
+examples/ior/*
